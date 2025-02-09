@@ -4,8 +4,8 @@
 
 
 // constants of simulation
-#define N_beads 20  //Number of beads used in taylor line
-#define N_systems 120 //Number of systems
+#define N_beads 10  //Number of beads used in taylor line
+#define N_systems 5 //Number of systems
 #define m 1.0    //mass of each bead
 #define K 1000000.0 //hookes' constant
 #define r 0.1   // radius of beads
@@ -18,12 +18,12 @@
 #define L0b 0.14 // L0 times b
 #define TWO_PI 6.28318530718
 #define Var 2 // KbT/m
-#define d2Rdt 0.1  // rate of change of shrink rate
+#define d2Rdt 0.01  // rate of change of shrink rate
 #define nu 100.0    // andersen coupling strength
 
 int iter;   //number of iterations
 double R;   // radius of confinement
-double dRdt = -2.0; //intial shrink rate
+double dRdt = -0.5; //intial shrink rate
 double positions[N_systems][N_beads][2];
 double velocities[N_systems][N_beads][2];
 double ac[N_systems][N_beads][2];
@@ -57,6 +57,51 @@ void propel() {
         double cos_alpha[N_beads] = {0.0};
         double sin_alpha[N_beads] = {0.0};
 
+        // Handling Collision dynamics
+        for (int k = j + 1; k < N_systems; ++k) {
+            for (int x = 0; x < N_beads; ++x) {
+                for (int y = 0; y < N_beads; ++y) {
+                  double diff[2] = {positions[j][x][0] - positions[k][y][0],positions[j][x][1] - positions[k][y][1]};
+                  double mag_sq = diff[0]*diff[0] + diff[1]*diff[1];
+                  if (mag_sq < collisionR_sq) {
+                    double bxy = ( diff[0]*(velocities[j][x][0]-velocities[k][y][0]) + diff[1]*(velocities[j][x][1]-velocities[k][y][1]) ) / mag_sq ;
+                    if (bxy<0){
+                        //moving half time step back
+                        positions[j][x][0] -= (velocities[j][x][0] + (ac[j][x][0]*dt/4)) * dt/2;
+                        positions[j][x][1] -= (velocities[j][x][1] + (ac[j][x][1]*dt/4)) * dt/2;
+                        positions[k][y][0] -= (velocities[k][y][0] + (ac[k][y][0]*dt/4)) * dt/2;
+                        positions[k][y][1] -= (velocities[k][y][1] + (ac[k][y][1]*dt/4)) * dt/2;
+                        //projecting center-to-center spacing to collisionR
+                        double diff_new[2] = {positions[j][x][0] - positions[k][y][0],positions[j][x][1] - positions[k][y][1]};
+                        double mag_sq_new  = diff_new[0]*diff_new[0] + diff_new[1]*diff_new[1];
+                        double dxy[2] = {((collisionR/sqrt(mag_sq_new) -1)/2)*diff_new[0],((collisionR/sqrt(mag_sq_new) -1)/2)*diff_new[1]};
+                        positions[k][y][0]-=dxy[0];
+                        positions[k][y][1]-=dxy[1];
+                        positions[j][x][0]+=dxy[0];
+                        positions[j][x][1]+=dxy[1];
+                        //calculating change in velocities 
+                        double vxy[2] = {bxy * diff[0], bxy * diff[1]};
+                        col_vel[j][x][0] -= vxy[0];
+                        col_vel[j][x][1] -= vxy[1];
+                        col_vel[k][y][0] += vxy[0];
+                        col_vel[k][y][1] += vxy[1];
+                    }
+                  }
+
+                }
+            }
+        }
+        for (int j=0; j<N_systems ; ++j){   // adding velocity changes during collisions to the velocities
+            for (int i = 0; i < N_beads; ++i){
+                velocities[j][i][0] += col_vel[j][i][0];
+                velocities[j][i][1] += col_vel[j][i][1];
+                if(col_vel[j][i][0]!=0.0 || col_vel[j][i][1]!=0.0){
+                    positions[j][i][0] += (velocities[j][i][0] + (ac[j][i][0]*dt/4)) * dt/2;
+                    positions[j][i][1] += (velocities[j][i][1] + (ac[j][i][1]*dt/4)) * dt/2;
+                }
+                
+            }
+        }
         // Calculating alpha based on prescribed curvature
         for (int i = 0; i < N_beads; ++i) {
             alpha[i] = L0b * sin(phi[j] + TWO_PI * (freq[j] * t + i * (2.0 / N_beads)));
@@ -117,33 +162,9 @@ void propel() {
             ac[j][i][1] = (F1[i][1] + F2[i][1]) / m;
         }
 
-        // Handling Collision dynamics
-        for (int k = j + 1; k < N_systems; ++k) {
-            for (int x = 0; x < N_beads; ++x) {
-                for (int y = 0; y < N_beads; ++y) {
-                  double diff[2] = {positions[j][x][0] - positions[k][y][0],positions[j][x][1] - positions[k][y][1]};
-                  double mag_sq = diff[0]*diff[0] + diff[1]*diff[1];
-                  if (mag_sq < collisionR_sq) {
-                    double bxy = ( diff[0]*(velocities[j][x][0]-velocities[k][y][0]) + diff[1]*(velocities[j][x][1]-velocities[k][y][1]) ) / mag_sq ;
-                    if (bxy<0){
-                        double vxy[2] = {bxy * diff[0], bxy * diff[1]};
-                        col_vel[j][x][0] -= vxy[0];
-                        col_vel[j][x][1] -= vxy[1];
-                        col_vel[k][y][0] += vxy[0];
-                        col_vel[k][y][1] += vxy[1];
-                    }
-                  }
-
-                }
-            }
-        }
+        
     }
-    for (int j=0; j<N_systems ; ++j){   // adding velocity changes during collisions to the velocities
-      for (int i = 0; i < N_beads; ++i){
-          velocities[j][i][0] += col_vel[j][i][0];
-          velocities[j][i][1] += col_vel[j][i][1];
-      }
-    }
+    
 }
 
 // Handles collision with the moving bounding wall
