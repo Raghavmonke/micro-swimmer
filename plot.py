@@ -6,11 +6,11 @@ np.random.seed(44)
 
 
 # Simulation parameters
-N_beads = 20  # Number of beads in one system
-N_systems = 120 # Number of bead systems
+N_beads = 10  # Number of beads in one system
+N_systems = 5 # Number of bead systems
 m = 1.0  # Mass of each bead, maybe 1 microgram
 r = 0.1  # Radius of each bead
-R = 0  # intializing R
+R = 2  # intializing R
 t = 0.0 #initializing time
 counter = 0 #initializing counter
 # Initialize positions, velocities and accelerations for all systems
@@ -35,7 +35,7 @@ def read_from_backup(f_name):
 
 
 # reading data
-read_from_backup("data2.txt")
+read_from_backup("out.txt")
 
 # calculating occupied volume fraction
 vf = (N_systems*N_beads*np.pi*r**2)*100 / (np.pi*(R+r)**2)
