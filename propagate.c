@@ -67,10 +67,10 @@ void propel() {
                     double bxy = ( diff[0]*(velocities[j][x][0]-velocities[k][y][0]) + diff[1]*(velocities[j][x][1]-velocities[k][y][1]) ) / mag_sq ;
                     if (bxy<0){
                         //moving half time step back
-                        positions[j][x][0] -= (velocities[j][x][0] + (ac[j][x][0]*dt/4)) * dt/2;
-                        positions[j][x][1] -= (velocities[j][x][1] + (ac[j][x][1]*dt/4)) * dt/2;
-                        positions[k][y][0] -= (velocities[k][y][0] + (ac[k][y][0]*dt/4)) * dt/2;
-                        positions[k][y][1] -= (velocities[k][y][1] + (ac[k][y][1]*dt/4)) * dt/2;
+                        // positions[j][x][0] -= (velocities[j][x][0] + (ac[j][x][0]*dt/4)) * dt/2;
+                        // positions[j][x][1] -= (velocities[j][x][1] + (ac[j][x][1]*dt/4)) * dt/2;
+                        // positions[k][y][0] -= (velocities[k][y][0] + (ac[k][y][0]*dt/4)) * dt/2;
+                        // positions[k][y][1] -= (velocities[k][y][1] + (ac[k][y][1]*dt/4)) * dt/2;
                         //projecting center-to-center spacing to collisionR
                         double diff_new[2] = {positions[j][x][0] - positions[k][y][0],positions[j][x][1] - positions[k][y][1]};
                         double mag_sq_new  = diff_new[0]*diff_new[0] + diff_new[1]*diff_new[1];
@@ -79,29 +79,22 @@ void propel() {
                         positions[k][y][1]-=dxy[1];
                         positions[j][x][0]+=dxy[0];
                         positions[j][x][1]+=dxy[1];
+                        // printf("bounce by %f  , %f",dxy[0],dxy[1]);
                         //calculating change in velocities 
                         double vxy[2] = {bxy * diff[0], bxy * diff[1]};
                         col_vel[j][x][0] -= vxy[0];
                         col_vel[j][x][1] -= vxy[1];
                         col_vel[k][y][0] += vxy[0];
                         col_vel[k][y][1] += vxy[1];
+                        // printf("velocity earlier was %f x and %f y and now added was %f x and %f y",velocities[j][x][0],velocities[j][x][1],col_vel[j][x][0]+velocities[j][x][0],col_vel[j][x][1]+velocities[j][x][1]);
+                        // printf("velocity earlier was %f x and %f y and now added was %f x and %f y",velocities[k][y][0],velocities[k][y][1],col_vel[k][y][0]+velocities[k][y][0],col_vel[k][y][1]+velocities[k][y][1]);
                     }
                   }
 
                 }
             }
         }
-        for (int j=0; j<N_systems ; ++j){   // adding velocity changes during collisions to the velocities
-            for (int i = 0; i < N_beads; ++i){
-                velocities[j][i][0] += col_vel[j][i][0];
-                velocities[j][i][1] += col_vel[j][i][1];
-                if(col_vel[j][i][0]!=0.0 || col_vel[j][i][1]!=0.0){
-                    positions[j][i][0] += (velocities[j][i][0] + (ac[j][i][0]*dt/4)) * dt/2;
-                    positions[j][i][1] += (velocities[j][i][1] + (ac[j][i][1]*dt/4)) * dt/2;
-                }
-                
-            }
-        }
+        
         // Calculating alpha based on prescribed curvature
         for (int i = 0; i < N_beads; ++i) {
             alpha[i] = L0b * sin(phi[j] + TWO_PI * (freq[j] * t + i * (2.0 / N_beads)));
@@ -163,6 +156,18 @@ void propel() {
         }
 
         
+    }
+    for (int j=0; j<N_systems ; ++j){   // adding velocity changes during collisions to the velocities
+        for (int i = 0; i < N_beads; ++i){
+            velocities[j][i][0] += col_vel[j][i][0];
+            velocities[j][i][1] += col_vel[j][i][1];
+            if(fabs(col_vel[j][i][0]-0.0)>0.0000000001 && fabs(col_vel[j][i][1]-0.0)>0.00000000001){
+                // printf("\n moving by %d",(velocities[j][i][0] + (ac[j][i][0]*dt/4)) * dt/2);
+                // printf("\n col vel is %f",col_vel[j][i][0]);
+                //positions[j][i][1] += (velocities[j][i][1] + (ac[j][i][1]*dt/4)) * dt/2;
+            }
+            
+        }
     }
     
 }

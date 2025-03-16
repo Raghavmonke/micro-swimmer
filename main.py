@@ -37,7 +37,7 @@ collisionR = 2.0*r   # center to center spacing for collision
 L0 = 2.0 * r  # Natural length of the spring
 K_bending = 100000.0     # Bending rigidity constant
 dt = 0.0005  # Time step
-R = 2  #confinement initial radius
+R = 20  #confinement initial radius
 dRdt = -0.5    # confinement shrink rate
 d2Rdt = 0.01   # rate of change of shrink rate
 freq = np.random.uniform(20, 30 , N_systems)  # Random frequencies for each system, intial velocities of COM of each microwimmer depends on this
@@ -121,7 +121,7 @@ ax.set_xlim(-R - 5, R + 5)
 ax.set_ylim(-R - 5, R + 5)
 circle = Circle((0, 0), R, color='black', fill=False)
 ax.add_patch(circle)
-bead_systems = [ax.plot([], [], 'b-')[0] for _ in range(N_systems)];bead_systems.append(circle)
+bead_systems = [ax.plot([], [], 'bo-')[0] for _ in range(N_systems)];bead_systems.append(circle)
 
 # def read_from_backup(f_name):
 #     '''this method reads the simulation values from filename given as parameter'''
@@ -165,7 +165,7 @@ def write_to_backup(f_name,mode="w"):
                 f1.write(f"{ac[i][j][0]},{ac[i][j][1]},")
             f1.write(f"{ac[i][N_beads-1][0]},{ac[i][N_beads-1][1]}\n")
 
-#write_to_backup("data.txt","w") # writing intial system values to data.txt file
+write_to_backup("data.txt","w") # writing intial system values to data.txt file
 
 def propel():
     '''this method calculates the hooke's and bending forces, then it detects and handles collision dynamics.'''
@@ -201,8 +201,8 @@ def propel():
         for i in range(N_beads):
             if (col_vel[j][i][0]!=0.0 and col_vel[j][i][1]!=0.0):
                 velocities[j][i] += col_vel[j][i]
-                positions[j][i][0] += (velocities[j][i][0] + (ac[j][i][0]*dt/4)) * dt/2
-                positions[j][i][1] += (velocities[j][i][1] + (ac[j][i][1]*dt/4)) * dt/2
+                #positions[j][i][0] += (velocities[j][i][0] + (ac[j][i][0]*dt/4)) * dt/2
+                #positions[j][i][1] += (velocities[j][i][1] + (ac[j][i][1]*dt/4)) * dt/2
     
     # calculating forces
     for j in range(N_systems):
@@ -315,17 +315,18 @@ def animate(i):
         bead_systems[j].set_data(positions[j, :, 0], positions[j, :, 1])
     return bead_systems
 
-# Set up animation
-ani = animation.FuncAnimation(fig, animate, frames=200, blit=True,cache_frame_data=True, repeat=True, interval=dt*1000)
-plt.show()
-plt.close()
+#Set up animation
+# ani = animation.FuncAnimation(fig, animate, frames=200, blit=True,cache_frame_data=True, repeat=True, interval=dt*1000)
+# plt.show()
+# plt.close()
 
 # dRdt = -0.0001
 # d2Rdt = 0
 # ani = animation.FuncAnimation(fig, animate, frames=200, blit=True,cache_frame_data=True, repeat=True, interval=dt*1000)
-
+# for i in range (2000):
+#     update_positions()
 vf  = (N_systems*N_beads*np.pi*r**2)*100 / (np.pi*(R+r)**2)
-print(vf,R,type(vf))
+#print(vf,R,type(vf))
 fig, ax = plt.subplots(figsize=(8, 8))
 ax.set_xlim(-R - 5, R + 5)
 ax.set_ylim(-R - 5, R + 5)
