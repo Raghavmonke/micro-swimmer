@@ -4,8 +4,8 @@
 
 
 // constants of simulation
-#define N_beads 10  //Number of beads used in taylor line
-#define N_systems 5 //Number of systems
+#define N_beads 20  //Number of beads used in taylor line
+#define N_systems 120 //Number of systems
 #define m 1.0    //mass of each bead
 #define K 1000000.0 //hookes' constant
 #define r 0.1   // radius of beads
@@ -18,12 +18,12 @@
 #define L0b 0.14 // L0 times b
 #define TWO_PI 6.28318530718
 #define Var 2 // KbT/m
-#define d2Rdt 0.01  // rate of change of shrink rate
+#define d2Rdt 0.002  // rate of change of shrink rate
 #define nu 100.0    // andersen coupling strength
 
 int iter;   //number of iterations
 double R;   // radius of confinement
-double dRdt = -0.5; //intial shrink rate
+double dRdt = -0.8; //intial shrink rate
 double positions[N_systems][N_beads][2];
 double velocities[N_systems][N_beads][2];
 double ac[N_systems][N_beads][2];
@@ -41,6 +41,7 @@ FILE *output;
 // Generates two random numbers from normal distribution wiht variance KbT/M and stores in provided array as arguement.
 void rand_normal(double* ar) {
     double u1 = (double)rand() / RAND_MAX;
+    if (u1 < 1e-10) u1 = 1e-10;
     double u2 = ((double)rand() / RAND_MAX) * TWO_PI;
     double z0 = sqrt(-2.0 * Var * log(u1));
     ar[0] = z0 * cos(u2);
@@ -231,6 +232,36 @@ void update_positions(){
     t += dt ;
     counter+=1;
 }
+void update_positions_fix(){
+    // calculate new accelerations
+    propel() ;
+    // calculate new radius of system
+    // R += dRdt * dt;
+    // dRdt += d2Rdt*dt ;
+    // Update velocities and then positions
+    for (int j = 0; j<N_systems ; ++j){
+        for (int i = 0; i<N_beads ; ++i){
+            velocities[j][i][0] += ac[j][i][0] * dt ;
+            velocities[j][i][1] += ac[j][i][1] * dt ;
+
+            positions[j][i][0] += (velocities[j][i][0] + ac[j][i][0]*dt_half) * dt ;
+            positions[j][i][1] += (velocities[j][i][1] + ac[j][i][1]*dt_half) * dt ;
+            bounce_forward_boundary(positions[j][i],velocities[j][i]) ;
+        }
+        if ( (counter%100 == 0) && (((double)rand()/RAND_MAX)<nudt) ){
+        //andersen thermostat step
+        for (int i = 0; i<N_beads ; ++i){
+                double normal[2] = {0};
+                rand_normal(normal);
+                velocities[j][i][0] = normal[0];
+                velocities[j][i][1] = normal[1];
+            }
+        }
+    }
+
+    t += dt ;
+    counter+=1;
+}
 
 // reads values intially from the data file whose name is provided as arguement
 void read_from_backup(char* f_name) {
@@ -363,39 +394,52 @@ void write_to_backup(char *f_name) {
     fclose(output);
 }
 
-// // This function takes a sample(that includes time,counter,radius,positions,velocites) and appends it to the end of filename provided as arguement
-// void sample(char *f_name){  // samples t,R,counter,positions,velocities and appends to specified filename
-//     // saving output to output file
-//     output = fopen(f_name, "a");
-//     fprintf(output, "%.16f,%d,%.16f\n", t,counter, R); // storing 't,R\n'
-//
-//
-//     for (int i = 0; i < N_systems ; ++i){   // storing positions, velocities and accelerations
-//         for (int j = 0; j < N_beads-1 ; ++j) {    //storing positions
-//             fprintf(output,"%.16f,%.16f,",positions[i][j][0],positions[i][j][1]);
-//         }
-//         fprintf(output, "%.16f,%.16f\n", positions[i][N_beads - 1][0],positions[i][N_beads - 1][1]);
-//         for (int j = 0; j < N_beads-1 ; ++j) {    //storing velocities
-//             fprintf(output,"%.16f,%.16f,",velocities[i][j][0],velocities[i][j][1]);
-//         }
-//         fprintf(output,"%.16f,%.16f\n",velocities[i][N_beads-1][0],velocities[i][N_beads-1][1]);
-//     }
-//
-//     //closing output file
-//     fclose(output);
-// }
+// This function takes a sample(that includes time,counter,radius,positions,velocites) and appends it to the end of filename provided as arguement
+void sample(char *f_name){  // samples t,R,counter,positions,velocities and appends to specified filename
+    // saving output to output file
+    output = fopen(f_name, "a");
+    fprintf(output, "%.16f,%d,%.16f\n", t,counter, R); // storing 't,R\n'
 
-// main program involivng reading input values, running simulation, writing output values.
+
+    for (int i = 0; i < N_systems ; ++i){   // storing positions, velocities and accelerations
+        for (int j = 0; j < N_beads-1 ; ++j) {    //storing positions
+            fprintf(output,"%.16f,%.16f,",positions[i][j][0],positions[i][j][1]);
+        }
+        fprintf(output, "%.16f,%.16f\n", positions[i][N_beads - 1][0],positions[i][N_beads - 1][1]);
+        for (int j = 0; j < N_beads-1 ; ++j) {    //storing velocities
+            fprintf(output,"%.16f,%.16f,",velocities[i][j][0],velocities[i][j][1]);
+        }
+        fprintf(output,"%.16f,%.16f\n",velocities[i][N_beads-1][0],velocities[i][N_beads-1][1]);
+    }
+
+    //closing output file
+    fclose(output);
+}
+
+// main program involving reading input values, running simulation, writing output values.
 int main(int argc, char* argv[]) {
     iter = atoi(argv[1]); // number of iterations of simulation
-
-    //reading values
-    read_from_backup(argv[2]);
-    // running simulation
-    for (int i = 0 ; i < iter ; ++i){
-        update_positions();
+    read_from_backup(argv[2]);//reading values
+    if(argc==4){//reducing radius to reach initial state of high density
+        
+        // running simulation
+        for (int i = 0 ; i < iter ; ++i){
+            update_positions();
+        }
+        // saving output to backup
+        write_to_backup(argv[3]);
     }
-    // saving output to backup
-    write_to_backup(argv[3]);
+    
+    else{//sampling with constant radius 
+        int sfreq = atoi(argv[4]);
+        for(int i=0;i< iter;++i){
+            update_positions_fix();
+            if(i % sfreq ==0){ //dumping sample
+                sample(argv[3]);
+            }
+        }
+        //saving final configuration once again(use it for velocity distr)
+        write_to_backup(argv[5]);
+    }
 }
 
