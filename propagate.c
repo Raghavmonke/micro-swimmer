@@ -406,15 +406,16 @@ void sample(char *f_name){  // samples t,R,counter,positions,velocities and appe
             fprintf(output,"%.16f,%.16f,",positions[i][j][0],positions[i][j][1]);
         }
         fprintf(output, "%.16f,%.16f\n", positions[i][N_beads - 1][0],positions[i][N_beads - 1][1]);
-        for (int j = 0; j < N_beads-1 ; ++j) {    //storing velocities
-            fprintf(output,"%.16f,%.16f,",velocities[i][j][0],velocities[i][j][1]);
-        }
-        fprintf(output,"%.16f,%.16f\n",velocities[i][N_beads-1][0],velocities[i][N_beads-1][1]);
+        // for (int j = 0; j < N_beads-1 ; ++j) {    //storing velocities
+        //     fprintf(output,"%.16f,%.16f,",velocities[i][j][0],velocities[i][j][1]);
+        // }
+        // fprintf(output,"%.16f,%.16f\n",velocities[i][N_beads-1][0],velocities[i][N_beads-1][1]);
     }
 
     //closing output file
     fclose(output);
 }
+
 
 // main program involving reading input values, running simulation, writing output values.
 int main(int argc, char* argv[]) {
