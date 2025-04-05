@@ -431,16 +431,38 @@ int main(int argc, char* argv[]) {
         write_to_backup(argv[3]);
     }
     
-    else{//sampling with constant radius 
-        int sfreq = atoi(argv[4]);
-        for(int i=0;i< iter;++i){
+    // else{//sampling with constant radius 
+    //     int sfreq = atoi(argv[4]);
+    //     for(int i=0;i< iter;++i){
+    //         update_positions_fix();
+    //         if(i % sfreq ==0){ //dumping sample
+    //             sample(argv[3]);
+    //         }
+    //     }
+    //     //saving final configuration once again(use it for velocity distr)
+    //     write_to_backup(argv[5]);
+    // }
+    else { // sampling with log-spaced intervals using n_per_decade
+        int n_per_decade = atoi(argv[4]);  // number of samples per decade
+        double log_base = log(10.0);       // natural log of 10
+        double step_size = log_base / n_per_decade;
+        int next_sample = 0;
+        int sample_index = 1;
+        // Compute next sample time: floor(exp(step_size * sample_index))
+        next_sample = (int)floor(exp(step_size * sample_index));
+        for (int i = 0; i < iter; ++i) {
             update_positions_fix();
-            if(i % sfreq ==0){ //dumping sample
-                sample(argv[3]);
+            if (i == next_sample) {
+                sample(argv[3]);  // sample at this log-spaced instant
+                sample_index++;
+                next_sample = (int)floor(exp(step_size * sample_index));
+                if (next_sample >= iter) break;  // ensure we stay within bounds
             }
         }
-        //saving final configuration once again(use it for velocity distr)
+        // save final configuration (for velocity distribution, etc.)
         write_to_backup(argv[5]);
     }
+    
+    
 }
 
