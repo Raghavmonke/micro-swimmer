@@ -1,4 +1,5 @@
 MAIN.PY
+
  '''
  BTP project: simulating biological glass using 2D taylor line model for microswimmers.
 
@@ -21,19 +22,23 @@ MAIN.PY
  '''
 
 PROPAGATE.C
+
 This file can do one of two things, depending on the arguments provided
 1. Use the file from main.py and run the simulation with a reducing radius, and output a the final configuration.
 2. Sample the system with a fixed radius by letting the simulation for some given iterations, and output both the sampled positions and the final state of the system.
 
 CALC.C
+
 This file is used to perform various calculations on the sampled data, behaviour is dependent on arguments provided
 1. We can calculate MSD
 2. We can calculate the intermediate scattering function for a given wavevector value
 3. Given the final state of the system (not the sampled data), make a csv with vx,vy pairs (can plot velocity distributions with it)
 
 PLOT.PY
+
 Used to plot the state of the system
 
 MOVIEMAKER.PY
+
 This code takes the sampled data and creates and saves snapshots of the system.
 use appropriate ffmpeg commands to make a movie out of it then
