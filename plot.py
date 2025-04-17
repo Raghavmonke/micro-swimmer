@@ -35,6 +35,7 @@ def read_from_backup(f_name):
 
 
 # reading data
+#CHANGE HERE TO READ A DIFFERENT FILE
 read_from_backup("out.txt")
 
 # calculating occupied volume fraction

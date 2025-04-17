@@ -1,3 +1,6 @@
+//This file can do one of two things, depending on the arguments provided
+//1. Use the file from main.py and run the simulation with a reducing radius, and output a the final configuration.
+//2. Sample the system with a fixed radius by letting the simulation for some given iterations, and output both the sampled positions and the final state of the system.
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -423,8 +426,8 @@ int main(int argc, char* argv[]) {//program behavior depends on number of argume
         }
         // saving output to backup
         write_to_backup(argv[3]);
-        //an example for a command line is
-        //propagate.exe 10000 data.txt out.txt
+        //syntax for command line is
+        //<compiled executable filename> <number of iterations> <input data file> <output datafile>
     }
     
     // else{//sampling with constant radius, with linear interval 
@@ -461,7 +464,7 @@ int main(int argc, char* argv[]) {//program behavior depends on number of argume
         // save final configuration (for velocity distribution, etc.)
         write_to_backup(argv[5]);
         //example for command line is 
-        //propagate.exe 100000 out.txt sample.txt 4 final.txt 10
+        //<compiled executablefilename> <numberofiterations> <inputdatafile> <outputsampled datafile> <n_per_decade> <finalstateoutputdatafile> <no of iterations to start from>
     }
     
     

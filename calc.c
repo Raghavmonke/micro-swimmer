@@ -1,3 +1,7 @@
+//This file is used to perform various calculations on the sampled data, behaviour is dependent on arguments provided
+//1. We can calculate MSD
+//2. We can calculate the intermediate scattering function for a given wavevector value
+//3. Given the final state of the system (not the sampled data), make a csv with vx,vy pairs (can plot velocity distributions with it)
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -208,10 +212,14 @@ void extract_velocities(const char *input_file, const char *output_csv) {
 int main(int argc, char* argv[]){
     if(argc == 3){
         extract_velocities(argv[1],argv[2]);
+        //example
+        //<executable> <finalstatefilename> <vel csv>
     }
     else{compute_msd("sample.txt");
     compute_scattering_function("sample.txt",PI*10);//change value of q or filename here. 
-    }
+    //example
+    //<executable>
+}
     //note: time dumped in the msd and scattering files does not start from 0.
     //Time taken to reach the required volume fraction needs to be manualy subtracted (significant for log plots)
 }
