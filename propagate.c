@@ -72,7 +72,8 @@ void propel() {
                         // positions[j][x][1] -= (velocities[j][x][1] + (ac[j][x][1]*dt/4)) * dt/2;
                         // positions[k][y][0] -= (velocities[k][y][0] + (ac[k][y][0]*dt/4)) * dt/2;
                         // positions[k][y][1] -= (velocities[k][y][1] + (ac[k][y][1]*dt/4)) * dt/2;
-                        //projecting center-to-center spacing to collisionR
+
+                        //projecting center-to-center spacing to collisionR, so overlapping beads become just-touching beads
                         double diff_new[2] = {positions[j][x][0] - positions[k][y][0],positions[j][x][1] - positions[k][y][1]};
                         double mag_sq_new  = diff_new[0]*diff_new[0] + diff_new[1]*diff_new[1];
                         double dxy[2] = {((collisionR/sqrt(mag_sq_new) -1)/2)*diff_new[0],((collisionR/sqrt(mag_sq_new) -1)/2)*diff_new[1]};
@@ -81,14 +82,13 @@ void propel() {
                         positions[j][x][0]+=dxy[0];
                         positions[j][x][1]+=dxy[1];
                         // printf("bounce by %f  , %f",dxy[0],dxy[1]);
-                        //calculating change in velocities 
+                        //calculating change in velocities, following elastic collision rules
                         double vxy[2] = {bxy * diff[0], bxy * diff[1]};
                         col_vel[j][x][0] -= vxy[0];
                         col_vel[j][x][1] -= vxy[1];
                         col_vel[k][y][0] += vxy[0];
                         col_vel[k][y][1] += vxy[1];
-                        // printf("velocity earlier was %f x and %f y and now added was %f x and %f y",velocities[j][x][0],velocities[j][x][1],col_vel[j][x][0]+velocities[j][x][0],col_vel[j][x][1]+velocities[j][x][1]);
-                        // printf("velocity earlier was %f x and %f y and now added was %f x and %f y",velocities[k][y][0],velocities[k][y][1],col_vel[k][y][0]+velocities[k][y][0],col_vel[k][y][1]+velocities[k][y][1]);
+                        
                     }
                   }
 
@@ -162,11 +162,6 @@ void propel() {
         for (int i = 0; i < N_beads; ++i){
             velocities[j][i][0] += col_vel[j][i][0];
             velocities[j][i][1] += col_vel[j][i][1];
-            if(fabs(col_vel[j][i][0]-0.0)>0.0000000001 && fabs(col_vel[j][i][1]-0.0)>0.00000000001){
-                // printf("\n moving by %d",(velocities[j][i][0] + (ac[j][i][0]*dt/4)) * dt/2);
-                // printf("\n col vel is %f",col_vel[j][i][0]);
-                //positions[j][i][1] += (velocities[j][i][1] + (ac[j][i][1]*dt/4)) * dt/2;
-            }
             
         }
     }
@@ -235,9 +230,7 @@ void update_positions(){
 void update_positions_fix(){
     // calculate new accelerations
     propel() ;
-    // calculate new radius of system
-    // R += dRdt * dt;
-    // dRdt += d2Rdt*dt ;
+    //same function as update_positions(), but without radius changing
     // Update velocities and then positions
     for (int j = 0; j<N_systems ; ++j){
         for (int i = 0; i<N_beads ; ++i){
@@ -250,6 +243,7 @@ void update_positions_fix(){
         }
         if ( (counter%100 == 0) && (((double)rand()/RAND_MAX)<nudt) ){
         //andersen thermostat step
+        //scope for further experimentation here
         for (int i = 0; i<N_beads ; ++i){
                 double normal[2] = {0};
                 rand_normal(normal);
@@ -394,7 +388,7 @@ void write_to_backup(char *f_name) {
     fclose(output);
 }
 
-// This function takes a sample(that includes time,counter,radius,positions,velocites) and appends it to the end of filename provided as arguement
+// This function takes a sample(that includes time,counter,radius,positions,velocites) and appends it to the end of filename provided as argument
 void sample(char *f_name){  // samples t,R,counter,positions,velocities and appends to specified filename
     // saving output to output file
     output = fopen(f_name, "a");
@@ -418,7 +412,7 @@ void sample(char *f_name){  // samples t,R,counter,positions,velocities and appe
 
 
 // main program involving reading input values, running simulation, writing output values.
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {//program behavior depends on number of arguments
     iter = atoi(argv[1]); // number of iterations of simulation
     read_from_backup(argv[2]);//reading values
     if(argc==4){//reducing radius to reach initial state of high density
@@ -429,9 +423,11 @@ int main(int argc, char* argv[]) {
         }
         // saving output to backup
         write_to_backup(argv[3]);
+        //an example for a command line is
+        //propagate.exe 10000 data.txt out.txt
     }
     
-    // else{//sampling with constant radius 
+    // else{//sampling with constant radius, with linear interval 
     //     int sfreq = atoi(argv[4]);
     //     for(int i=0;i< iter;++i){
     //         update_positions_fix();
@@ -442,25 +438,30 @@ int main(int argc, char* argv[]) {
     //     //saving final configuration once again(use it for velocity distr)
     //     write_to_backup(argv[5]);
     // }
-    else { // sampling with log-spaced intervals using n_per_decade
+    else { // sampling with log-spaced intervals using n_per_decade, at fixed radius
         int n_per_decade = atoi(argv[4]);  // number of samples per decade
         double log_base = log(10.0);       // natural log of 10
         double step_size = log_base / n_per_decade;
         int next_sample = 0;
-        int sample_index = 1;
+        int sample_index = atoi(argv[6]); //use for continuing with a previous sample, for new sample just use 1
         // Compute next sample time: floor(exp(step_size * sample_index))
         next_sample = (int)floor(exp(step_size * sample_index));
         for (int i = 0; i < iter; ++i) {
             update_positions_fix();
-            if (i == next_sample) {
-                sample(argv[3]);  // sample at this log-spaced instant
+            if (i == next_sample) {// sample at this log-spaced instant
+                sample(argv[3]);  
                 sample_index++;
+                while ((int)floor(exp(step_size * sample_index))==next_sample){
+                    sample_index++;
+                }
                 next_sample = (int)floor(exp(step_size * sample_index));
                 if (next_sample >= iter) break;  // ensure we stay within bounds
             }
         }
         // save final configuration (for velocity distribution, etc.)
         write_to_backup(argv[5]);
+        //example for command line is 
+        //propagate.exe 100000 out.txt sample.txt 4 final.txt 10
     }
     
     

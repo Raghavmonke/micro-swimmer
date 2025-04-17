@@ -3,12 +3,12 @@
 #include <math.h>
 #include <string.h>
 #include <complex.h>
-
+#define N_beads 20  //Number of beads used in taylor line
+#define N_systems 120 //Number of systems
 #define PI 3.141592653589793
 #define VALUES_PER_LINE (N_beads * 2)  // x and y per bead
 #define LINE_BUFFER 2048
-#define N_beads 20  //Number of beads used in taylor line
-#define N_systems 120 //Number of systems
+
 double xref[N_systems][N_beads], yref[N_systems][N_beads];
 double x_ref[N_systems][N_beads];
 double y_ref[N_systems][N_beads];
@@ -19,7 +19,18 @@ void compute_scattering_function(const char *filename, double q) {
         return;
     }
 
-    FILE *out = fopen("scattering_output.csv", "w");
+    char output_filename[128];
+
+    // Round q to 2 decimal places and convert to int (e.g. 6.28 → 628)
+    int q_int = (int)(q * 100 + 0.5);
+    int q_whole = q_int / 100;
+    int q_frac  = q_int % 100;
+
+    // Create filename like scattering_q_6p28.csv
+    snprintf(output_filename, sizeof(output_filename),
+            "scattering_q_%dp%02d.csv", q_whole, q_frac);
+
+    FILE *out = fopen(output_filename, "w");
     if (!out) {
         perror("Failed to open output file");
         fclose(fp);
@@ -139,7 +150,68 @@ void compute_msd(const char *filename) {
     fclose(out);
     printf("MSD written to msd_output.csv\n");
 }
+void extract_velocities(const char *input_file, const char *output_csv) {
+    
+    //extracts velocities from final state and dumps into csv as vx,vy pairs
+    FILE *in = fopen(input_file, "r");
+    if (!in) {
+        perror("Error opening input file");
+        return;
+    }
+
+    FILE *out = fopen(output_csv, "w");
+    if (!out) {
+        perror("Error opening output file");
+        fclose(in);
+        return;
+    }
+
+    char line[8192];
+
+    // Skip first 3 header lines
+    for (int i = 0; i < 3; ++i) {
+        if (!fgets(line, sizeof(line), in)) {
+            fprintf(stderr, "Unexpected end of file while skipping headers.\n");
+            fclose(in);
+            fclose(out);
+            return;
+        }
+    }
+
+    int line_counter = 0;
+    while (fgets(line, sizeof(line), in)) {
+        line_counter++;
+
+        // Only process every 3rd line (velocity lines)
+        if (line_counter % 3 == 2) {
+            // Parse the velocity line
+            char *token = strtok(line, ",");
+            int bead_counter = 0;
+
+            while (token && bead_counter < N_beads) {
+                double vx = atof(token);
+                token = strtok(NULL, ",");
+                if (!token) break;
+
+                double vy = atof(token);
+                fprintf(out, "%.6f,%.6f\n", vx, vy);
+                bead_counter++;
+                token = strtok(NULL, ",");
+            }
+        }
+    }
+
+    fclose(in);
+    fclose(out);
+    printf("Velocities extracted and saved to %s\n", output_csv);
+}
 int main(int argc, char* argv[]){
-    compute_msd("sample.txt");
-    compute_scattering_function("sample.txt",PI*2);
+    if(argc == 3){
+        extract_velocities(argv[1],argv[2]);
+    }
+    else{compute_msd("sample.txt");
+    compute_scattering_function("sample.txt",PI*10);//change value of q or filename here. 
+    }
+    //note: time dumped in the msd and scattering files does not start from 0.
+    //Time taken to reach the required volume fraction needs to be manualy subtracted (significant for log plots)
 }

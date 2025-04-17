@@ -6,8 +6,8 @@ np.random.seed(44)
 
 
 # Simulation parameters
-N_beads = 10  # Number of beads in one system
-N_systems = 5 # Number of bead systems
+N_beads = 20  # Number of beads in one system
+N_systems = 120 # Number of bead systems
 m = 1.0  # Mass of each bead, maybe 1 microgram
 r = 0.1  # Radius of each bead
 R = 2  # intializing R

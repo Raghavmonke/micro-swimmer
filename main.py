@@ -28,8 +28,9 @@ np.random.seed(44)
 
 
 # Simulation parameters
-N_beads = 10  # Number of beads in one system
-N_systems = 5 # Number of bead systems
+N_beads = 20  # Number of beads in one system
+N_systems = 120 # Number of bead systems
+#If changing the above two values, do so manually in all the other files too when using them
 K = 1000000.0  # Spring constant (Hooke's Law)
 m = 1.0  # Mass of each bead, maybe 1 microgram
 r = 0.1  # Radius of each bead
